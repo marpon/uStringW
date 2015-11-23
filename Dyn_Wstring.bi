@@ -23,10 +23,11 @@
 '     it's free to use and modify, but please do not remove that header.
 '#########################################################################################################
 '	evolutions : from 1.00
-'	1.01 added constructors to have corrected direct assignment and with implicit converted string , wstring ptr
-'	1.01 corrected bug in u_Instr function to work on reverse ustring order with negative start
-'	1.01 some cosmetic cleaning : ustringw functions : use now   'return xx'  , not   'function = xx'
-' 1.O2 modified parameter order in u_string(count , code), added more functions : case & Trim collection
+' 1.01 added constructors to have corrected direct assignment and with implicit converted string , wstring ptr
+' 1.01 corrected bug in u_Instr function to work on reverse ustring order with negative start
+' 1.01 some cosmetic cleaning : ustringw functions : use now   'return xx'  , not   'function = xx'
+' 1.O2 modified parameter order in u_string(count , code), 
+' 1.02 added more functions : case & Trim collections ; added u_Reset ; added u_LineInput
 '#########################################################################################################
 
 #Ifndef SET_USTRINGW_DYN

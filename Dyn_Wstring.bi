@@ -1868,7 +1868,7 @@ escape1:
 		end if
 		erase UTF32LE
 		return 1
-   end function
+   	end function
 
 	''::::: ok for win ,  linux ? WITH BOM
 	private function write_utf8_file(ByRef file as string, ByRef content as uStringW,rewrite as long =1 )as long
@@ -1913,6 +1913,73 @@ escape1:
 		end if
 		return 1
 	end function
+	
+	
+	''::::: external sub for reading files line/line  ok for win /linux   Ansi ,UTF8 ,UTF16LE ,UTF32BE
+	'  usage    Open txt For Input   As #filehandle
+	'				u_LineInput( filehandle,utxt,16)
+	'				Close #filehandle
+	'
+	sub u_LineInput(byref Filehandle As Integer,byref y as uStringW,iflag as long=0) 
+		dim as string x,sdef,sb1,sb2,sb3,sb4
+		dim as ubyte ubt1
+		dim as long i
+
+		if EOF(Filehandle)=0 then 
+			Line Input #Filehandle, x 
+			'print "print x  ";x
+		else
+			u_reset(y)
+			exit sub
+		end if
+		if iflag =0 THEN
+			if x= "" THEN
+				u_reset(y)
+				exit sub
+      			END IF
+			y=u_From_CodeString(x)
+		elseif iflag = 32 THEN	'assume its utf32BE
+			if left(x,4) = chr(0,0,254,255) then x=mid(x,5)
+			if right(x,7) = chr(0,0,0,13,0,0,0) then x=left(x,len(x)-7)
+			if x= "" THEN
+				u_reset(y)
+				exit sub
+      			END IF
+			sdef=""
+			For i= 1 to len(x) step 4
+				sb1=mid(x,i,1)
+				sb2=mid(x,i+1,1)
+				sb3=mid(x,i+2,1)
+				sb4=mid(x,i+3,1)
+				if sb1=chr(0) and sb2=chr(0) and len(wstring)= 2 THEN   ' win no surrogate
+					sdef &= sb4 & sb3
+				else
+					if len(wstring)= 2 then   'win surrogate for utf16
+						sdef &=surrogate_byt(sb1 & sb2 & sb3 & sb4)
+					else ' linux
+						sdef &= sb4 & sb3 & sb2 & sb1
+					end if
+				END IF
+			NEXT
+			y = u_from_String(sdef)
+		elseif iflag =16 THEN	'assume its utf16LE
+			if EOF(Filehandle)=0 then  get #Filehandle,,ubt1
+			if left(x,2) = chr(255,254) then x=mid(x,3)
+			if right(x,2) = chr(13,0) then x=left(x,len(x)-2)
+			if x= "" THEN
+				u_reset(y)
+				exit sub
+      			END IF
+			y = u_from_string(x)
+   		elseif iflag = 8 THEN
+	   		if asc(left(x, 1))=239 and  asc(mid(x,2, 1))=187 and  asc(mid(x,3, 1))=191 THEN x= mid(x,4)
+			if x="" THEN
+				u_reset(y)
+				exit sub
+      			END IF
+			y = u_from_Utf8s(x)
+		END IF
+	END sub
 
 	'==============================================================================================
 	'    uStringW  Operators and constructors
@@ -1940,11 +2007,11 @@ escape1:
 	'to concat 1 uStringW and 1 wstring ptr into new uStringW
 	Operator & ( ByRef ust1 as uStringW ,ByVal wst2 as wstring ptr) as uStringW
 		return u_Concat(ust1,u_Wstr(wst2))
-   end operator
+   	end operator
 	'to concat 1 uStringW and 1 wstring ptr into new uStringW (second form)
 	Operator + ( ByRef ust1 as uStringW ,ByVal wst2 as wstring ptr) as uStringW
 		return u_Concat(ust1,u_Wstr(wst2))
-   end operator
+   	end operator
 
 	'to concat 1 uStringW at the end of existing uStringW
 	operator uStringW.&= (ByRef ust2 as uStringW )
@@ -1967,11 +2034,11 @@ escape1:
 	'to concat 1 uStringW and 1 string into new uStringW
 	Operator & ( ByRef ust1 as uStringW ,ByRef st2 as string ) as uStringW
 		return u_Concat(ust1,u_From_CodeString(st2))
-   end operator
+   	end operator
 	'to concat 1 uStringW and 1 string into new uStringW (second form)
 	Operator + ( ByRef ust1 as uStringW ,ByRef st2 as string ) as uStringW
 		return u_Concat(ust1,u_From_CodeString(st2))
-   end operator
+   	end operator
 
 	'to concat 1 string at the end of existing uStringW
 	operator uStringW.&= (ByRef st2 as string  )
@@ -1996,7 +2063,7 @@ escape1:
 	'to compare 2 uStringW : equal
 	Operator = ( ByRef ust1 as uStringW ,ByRef ust2 as uStringW) as long
 		return u_Equal(ust1,ust2)
-   end operator
+   	end operator
 
 	'to compare 2 uStringW : different
 	Operator <> ( ByRef ust1 as uStringW ,ByRef ust2 as uStringW) as long
@@ -2005,7 +2072,7 @@ escape1:
 		else
 			return 1
 		end if
-   end operator
+   	end operator
 
 	'to Dim empty uStringW
 	constructor uStringW ()

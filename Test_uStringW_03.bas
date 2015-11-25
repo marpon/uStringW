@@ -15,7 +15,7 @@
 	#Define _INC_WINDOWS
 #ENDIF
 
-'#define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
+#define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
 
 #Include once "Dyn_wstring.bi"
 
@@ -83,13 +83,13 @@ uret = u_Right(ustr1,22)
 	Print:Print "Press key to continue" : sleep
 #endif
 
-dim as long ipos = u_Instr(ustr1, "here")
+dim as long ipos   = u_Instr(ustr1, "here")
 print
-print "u_Instr(""" &  ustr1  & """, ""here"") = "; ipos
+print "u_Instr( """ &  ustr1  & """ , ""here"" ) = "; ipos
 
 #ifdef _INC_WINDOWS
 	'casted to wstring ptr for win API
-	messagebox(0 ,"u_Instr(""" &  ustr1  & """, ""here"") = " & wstr( ipos), "Hello u_Instr" , MB_OK)
+	messagebox(0 ,"u_Instr(""" & ustr1 & """ , ""here"" ) = " & wstr( ipos), "Hello u_Instr" , MB_OK)
 #Else
 	Print:Print "Press key to continue" : sleep
 #endif
@@ -100,15 +100,15 @@ print "u_Instr(""" &  ustr1  & """, ""here"") = "; ipos
 
 ipos = u_Instr(9 , ustr1 , "e" )
 print
-print "u_Instr(9 , """ &  ustr1  & ", ""e"") = " ; ipos
+print "u_Instr( 9 , """ &  ustr1  & """ , ""e"" ) = " ; ipos
 
 #ifdef _INC_WINDOWS
 	'casted to wstring ptr for win API
-	messagebox(0 ,"u_Instr(9 , """ &  ustr1  & ", ""e"") = " & wstr( ipos), "Hello u_Instr" , MB_OK)
+	messagebox(0 ,"u_Instr( 9 , """ &  ustr1  & """ , ""e"" ) = " & ipos, "Hello u_Instr" , MB_OK)
 #Else
 	Print:Print "Press key to continue" : sleep
 #endif
-
+  
 
 ipos = u_Instr( -20 , ustr1 , "e" )
 print
@@ -116,7 +116,7 @@ print "u_Instr( -20 , """ &  ustr1  & ", ""e"") = " ; ipos
 
 #ifdef _INC_WINDOWS
 	'casted to wstring ptr for win API
-	messagebox(0 ,"u_Instr( -20 , """ &  ustr1  & ", ""e"") = " & wstr( ipos), "Hello u_Instr" , MB_OK)
+	messagebox(0 ,"u_Instr( -20 , """ &  ustr1  & """, ""e"" ) = " & wstr( ipos), "Hello u_Instr" , MB_OK)
 #Else
 	Print:Print "Press key to continue" : sleep
 #endif
@@ -158,7 +158,7 @@ uret = u_Reverse(ustr1)
 
 
 uret = u_String(5,8364)
-
+'uret = u_String(5,65)
 	print ustr1
 	print uret
 #ifdef _INC_WINDOWS

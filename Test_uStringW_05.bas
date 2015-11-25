@@ -16,7 +16,7 @@
 	#Define _INC_WINDOWS
 #ENDIF
 
-'#define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
+#define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
 
 #Include once "Dyn_wstring.bi"
 
@@ -67,7 +67,7 @@ Close #filehandle
 print: print "push any key to continue"
 sleep
 
-'test for utf8
+  'test for utf8
 txt = "hello_UTF8.bas" 
 Filehandle = FreeFile
 Open txt For Input   As #filehandle
@@ -87,7 +87,7 @@ Open txt For Input   As #filehandle
 	LOOP
 Close #filehandle
 print: print "push any key to continue"
-sleep
+sleep  
 
 txt = "hello_UNC.bas"
 Filehandle = FreeFile

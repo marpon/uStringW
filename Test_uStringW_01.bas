@@ -16,7 +16,7 @@
 	#Define _INC_WINDOWS
 #ENDIF
 
-'#define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
+#define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
 
 #Include once "Dyn_wstring.bi"
 

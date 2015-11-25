@@ -14,7 +14,7 @@
 	#Define _INC_WINDOWS
 #ENDIF
 
-'#define __VERBOSE_MODE__
+#define __VERBOSE_MODE__
 
 #Include once "Dyn_wstring.bi"
 
@@ -74,7 +74,7 @@ print "mem" , str1.data1 , old1.data1 , new1.data1
 print: print " action : replace"
 dim as UstringW retour = u_Replace(str1 , old1 , new1)  'generic function for replacing or removing sub-strings
 
-
+print: print "here ==="
 print "return = " & retour.data1 & "  " & u_to_Ansi(retour)
 
 

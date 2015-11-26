@@ -5,40 +5,46 @@ Freebasic unicode variable length type string , using wstring as container :
 
 The process of allocated memory :
 The dim  creates an allocated data of 1 wstring ( 2 or 4 bytes),
-when assigned the allocation is done by steps of 16 wstrings (32 or 64 bytes) + 1 wstring (2 or 4 bytes) to insure always uStringW with null character , the allocation is growing or reducing constantly according the 16 wstrings steps. (or 0)
-the core for that allocation/reallocation  is the hRealloc sub , initially from the fbc compiler source, it is  adapted for my usage.
+when assigned the allocation is done by steps of 16 wstrings (32 or 64 bytes) + 1 wstring (2 or 4 bytes) 
+    to insure always uStringW with null character. 
+The allocation is growing or reducing constantly according that 16 wstrings steps. (or 0)
+The core for that allocation/reallocation  is the :
+    hRealloc sub , initially from the fbc compiler source, it is  adapted for my usage.
 
 The uStringW type is using :
 constructors to directly assign uStringW from :
     uStringW (as it is evident)
     string  ( doing implicit conversion)
     wstring ptr (also with implicit conversion)
-operators : 
-    + ; & to concatenate with implicit conversion also for string ; wstring ptr ; longint ; double
-    &= ; += also with implicit conversion for string ; wstring ptr
-    = ; <> to compare uStringW
-    let for the implicit conversion
-    cast to cast to string or wstring ptr when needed
-destructor:
+Operators : 
+    + ; &		to concatenate with implicit conversion also for string ; wstring ptr ; longint ; double
+    &= ; +=		also with implicit conversion for string ; wstring ptr
+    = ; <>		to compare uStringW
+    Let         for the implicit conversion
+    Cast        to cast to string or wstring ptr when needed
+Destructor:
     to free automatically the allocated mem according the uStringW scope
     
-The global address list of the allocated memory is hold simply in a shared string array managed by a pseudo linked-list, in fact a class type  ( thanks to Paul Squires, who posted a very simple code to make it).
-That global address list manages the remaining allocated mem , and can be used to free the memory on demand.
+The global address list of the allocated memory is hold simply in a shared string array 
+	managed by a pseudo linked-list, in fact a class type  
+	( thanks to Paul Squires, who posted a very simple code to make it).
+	That global address list manages the remaining allocated mem , and can be used to free the memory on demand.
 
-As the automatic destructor function is in place , it can be avoided if needed 
-  just comment that line   #define __U_CLEAN_MEM__  
+	As the automatic destructor function is in place , it can be avoided if needed 
+  		just comment that line   #define __U_CLEAN_MEM__  
   
 The global process of allocating/reallocating/deallocating can be tracked with console messages, if you are in debug
 mode or simply by putting that define   #define __VERBOSE_MODE__  before the include in your code
 
 The "implicit conversion" for wstring ptr is very simple but not really interresting, 
 if you already have wstring *XX : you have done the job yourself , 
-            uStringW type is just done to not have to define the length at compile time.
-But anyhow just take the @ (varptr) of the wstring *xx to assign it direcly to uStringW  like : ustr = @wst1
-same to concat, same to direcly assign at creation   : dim as uStringW ustr = @wst1
+        uStringW type is just done to not have to define the length at compile time.
+But anyhow just take the @ (varptr) of the wstring *xx to assign it direcly to uStringW  
+		like : ustr = @wst1
+		same to concat, same to direcly assign at creation   : dim as uStringW ustr = @wst1
 
 An automatic cast to wstring ptr is also implemented (interresting to win API usage)  
-it implicitly uses the function u_strptr     just put : pWstring_1 = uStringW_1
+	it implicitly uses the function u_strptr     just put : pWstring_1 = uStringW_1
 
 
 The conversion from strings is more interresting, it is done in different ways

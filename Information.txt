@@ -32,7 +32,8 @@ The global process of allocating/reallocating/deallocating can be tracked with c
 mode or simply by putting that define   #define __VERBOSE_MODE__  before the include in your code
 
 The "implicit conversion" for wstring ptr is very simple but not really interresting, 
-if you already have wstring *XX : you have done yourself the job, uStringW type is just done to not have to define the length at compile time.
+if you already have wstring *XX : you have done the job yourself , 
+            uStringW type is just done to not have to define the length at compile time.
 But anyhow just take the @ (varptr) of the wstring *xx to assign it direcly to uStringW  like : ustr = @wst1
 same to concat, same to direcly assign at creation   : dim as uStringW ustr = @wst1
 
@@ -50,9 +51,9 @@ you can also do the same like that
 but you can simply do that  
   ustr="Ansi string to convert" & "\uXXYY" :   notice the pseudo escape sequence without !
   it is because implicitly the string is converted by an encoding function :  u_From_CodeString
-  wich converts the ansi string to wstring but can hold also a pseudo hex sequence of :
-        6 char \uXXYY  as the normal escape sequence , for unicode < &h10000 (max \uFFFF) 
-        but also 8 char \wZZXXYY  for another pseudo escape sequence for unicode >&hFFFF
+  wich converts the ansi string to wstring but can recognize also 2 pseudo hex sequence of :
+            6 char \uXXYY  as the normal escape sequence , for unicode < &h10000 (max \uFFFF) 
+   but also 8 char \wZZXXYY  for another pseudo escape sequence for unicode >&hFFFF
   
   by default the ustr = "string to convert" use that u_From_CodeString to convert ansi sequences
   
@@ -68,19 +69,21 @@ Or using read_utf8_file ; read_utf16_file or read_utf32_file
   to direcly assign to uStringW  a complete file in the different coding ways  
   ( the cr\lf , the control codes , even chr(0) are put in the uStringW
   
-For windows as said internally the coding is in UTF16  that means it has to take care of the surrogate pairs
-  all the conversion function provided are managing properly that feature of surrogate pairs. 
-  That also why it is included minimal manipulation uStringW functions to take care of that issue.
+For windows, as said, internally the coding is in UTF16 :
+  that means it has to take care of the surrogate pairs
+  all the functions provided are managing properly that feature of surrogate pairs. 
+  That's also why it is included minimal manipulation uStringW functions to take care of that issue.
   
-For linux is internally coded in UTF32 so minimal problem with surrogate story, just reading  with read_utf16_file
-  as to take care of that to convert the possible surrogate pair to an unique wstring, 
-  the provided function is managing that point also.
+For linux, it is internally coded in UTF32, so minimal problem with surrogate story, 
+  just reading/writing utf16 files have that need, it is done with : read_utf16_file or write_UTF16_File
+  to convert the possible surrogate pair to an unique wstring (or oposite), 
+  the provided functions are managing that point.
 
 some core manipulation functions are also implemented :
         u_Trim  ; u_Ltrim ; u_Rtrim ; u_instr
         u_Ucase ; u_Lcase
         u_Mid   ; u_Left  ; u_Right
-        u_Replace ; u_Parse ...
+        u_Replace ; u_Parse ; u_Reverse ...
         
 some format conversion 
         u_to_UTF32BE ; u_to_UTF32LE ; u_to_UTF8

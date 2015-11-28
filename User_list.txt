@@ -1,0 +1,62 @@
+
+' ####  Input  / convert functions
+Function u_Wstr(byval src as Wstring ptr) as uStringW
+Function u_from_CodeString(st1 as string) as uStringW
+Function u_from_String(src as string) as uStringW
+Function u_from_Ubyte(bsrc() as ubyte) as uStringW
+Function u_from_Utf8s(utf8s as string) as uStringW
+
+' ####  Output  / convert functions
+Function u_to_Utf8s(ini1 as uStringW) as string
+Function u_to_Ansi(ini1 as uStringW) as string
+Function u_to_Utf32le_ar(ini1 as uStringW ) as long
+Function u_to_Utf32be_ar(ini1 as uStringW ) as long
+
+' ####  To Create uStringW  functions
+Function Function u_String(icount as ulong , ucode as uinteger = 0) as uStringW
+Function u_Space(icount as ulong=1)as uStringW
+
+' ####  To Manipulate uStringW  functions
+Function u_Concat(byref ust1 as uStringW , byref ust2 as uStringW)as uStringW
+Function u_Replace(byref ini as uStringW , byval oldtext as uStringW , byval newtext as uStringW) as uStringW
+Function u_ReplaceChar(byref ini as uStringW , byval old as uinteger , byval us1 as uinteger)as uStringW
+Function u_Reverse(ByRef str1 as Const uStringW ) as uStringW
+Function u_Parse(src as uStringW , delim as uStringW = "," , index as long) as uStringW
+
+' ####  Basic core uStringW  functions
+Function u_Len(ByRef src as Const uStringW) as long
+Function u_Mid(ByRef str1 as Const uStringW , ByVal start as long , ByVal nb as long = 268435455) as uStringW
+Function u_Left(ByRef str1 as uStringW , ByVal nb as long) as uStringW
+Function u_Right(ByRef str1 as uStringW , ByVal nb as long) as uStringW
+Function u_Instr Overload(ByRef str1 as uStringW , ByRef sub1 as uStringW) as long
+Function u_Instr Overload(ByVal start As long , ByRef str1 as uStringW , ByRef sub1 as uStringW) as long
+Function u_Asc (ByRef str1 as Const uStringW , ByVal pos1 As long = 1) as ulong
+Function u_Chr (icode as ulong )as uStringW
+Function u_Val(ByRef str1 as Const uStringW) as double
+Function u_Ucase(source as uStringW ) as uStringW
+Function u_Lcase(source as uStringW ) as uStringW
+Function u_Trim(source as uStringW , utt as uStringW=" ") as uStringW
+Function u_Ltrim(source as uStringW , utt as uStringW=" ") as uStringW
+Function u_Rtrim(source as uStringW , utt as uStringW=" ") as uStringW
+
+' ####  Pointer uStringW  functions
+Function u_Strptr(ByRef src as Const uStringW) as wstring ptr
+Function u_Wdata(ByRef ini1 as uStringW) as wstring ptr    ' same as above , more friendly
+
+' ####  Surrogate  functions
+Function u_SurrCount(byref src as uStringW) as long
+Function u_NextSurr(byref src as uStringW, istart as long=1 ) as long
+
+' ####  Erase uStringW  Array function
+Sub u_Erase(uArray() as uStringW)
+
+' ####  File I/O uStringW  functions
+Function read_utf8_file(file as string) as uStringW
+Function read_utf16_file(file as string,endian as long =1) as uStringW
+Function read_utf32_file(file as string,endian as long = 1) as uStringW
+
+sub u_LineInput(byref Filehandle As Integer , byref y as uStringW , iUTFCode as long = 0)
+
+Function write_utf8_file(file as string, content as uStringW,rewrite as long =1 )as long
+Function write_utf16_file(file as string, content as uStringW,rewrite as long =1 )as long
+Function write_utf32_file(file as string, content as uStringW, rewrite as long =1 ) as long

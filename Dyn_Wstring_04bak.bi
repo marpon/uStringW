@@ -1,7 +1,7 @@
 
 '#########################################################################################################
 ' Code to create VARIABLE LENGTH WSTRING type , and some helper sub/function to use it !
-'
+' 
 ' the inspiration code is from the FreeBasic source compiler itself, i'm still do not understand
 ' why it was not extended on the core functions ?
 ' I hope it will evoluate to incorporate this important feature in simpler way.

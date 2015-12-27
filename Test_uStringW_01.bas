@@ -9,7 +9,6 @@
 
 
 
-#INCLUDE ONCE "Windows.bi"  'just needed to check the windows API, but can compile without !!!!
 ' or put here the relevant needed include  for OS different from windows
 
 #Ifdef __windows_bi__				'to insure compatibility with old FBC versions
@@ -18,7 +17,7 @@
 
 #define __VERBOSE_MODE__			'	uncomment to have mem menagement info / comment to hide
 
-#Include once "Dyn_wstring.bi"
+#Include once "Dyn_Wstring.bi"
 
 
 'The direct Dim assignment is  allowed for input with :  uStringW

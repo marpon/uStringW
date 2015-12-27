@@ -2,8 +2,8 @@
 '#########################################################################################################
 ' Code to create VARIABLE LENGTH WSTRING type , and some helper sub/function to use it !
 '
-' the inspiration code is from the FreeBasic source compiler itself, i'm still do not understand
-' why it was not extended on the core functions ?
+' the inspiration code is from the FreeBasic source compiler itself, I still do not understand
+' why it was not extended on the core functions.
 ' I hope it will evoluate to incorporate this important feature in simpler way.
 ' the core sub is : hRealloc wich makes the allocate/deallocate transparent for the user.
 ' it normally will work on both Windows / linux platforms taking into account the
@@ -13,24 +13,16 @@
 ' the main interest is : no need to define Wstring length , the counterpart : is problably slowing the
 ' process, but not noticed on average usage , most of the uStringW are allocated only once
 '#########################################################################################################
+
 ' "Borrowed code" from Paul Squires : original post for linked_list example
 ' http://www.freebasic.net/forum/viewtopic.php?f=7&t=23902&p=211211&hilit=linked+list#p211211
 ' used to simply take trace of the allocated memory, and automatically to free it when prog ends.
 ' That part seems to be removed without risk , but better programming usage to free the allocated memory.
+
 '#########################################################################################################
 ' Dyn_Wstring.bi version: 1.05 2015-November-29 original v1.00 2015/Nov/09
 ' by Marc Pons marpon@aliceadsl.fr
 ' it's free to use and modify, but please do not remove that header.
-'#########################################################################################################
-' evolutions : from 1.00
-' 1.01 added constructors to have corrected direct assignment and with implicit converted string , wstring ptr
-' 1.01 corrected bug in u_Instr function to work on reverse ustring order with negative start
-' 1.02 some cosmetic cleaning : ustringw functions : use now 'function = xx' , not 'return xx'
-' 1.02 modified parameter order in u_string(count , code), added more functions : case & Trim collection
-' 1.03 use as much as possible subs to not create frequent memory :alloc/assign/free
-' 1.03 new constructors ; operators and destructor for automatic deallocate
-' 1.04 minor bugs corrected, on surrogate management
-' 1.05 added new operator [] taking care also of surrogates
 '#########################################################################################################
 
 #Ifndef SET_USTRINGW_DYN
@@ -121,10 +113,12 @@
    'on linux 4 bytes/wstring "      " "       " using UTF32 coding on 1 ulong
 
    type uStringW
-         data1                     as Wstring ptr' Data wstring (in Utf16 in windows or Utf32 in linux )
-         len1                      as long       ' lenght in wstring (not bytes) including surrogate parts in win
-         size1                     as long       ' size in bytes of allocated memory
-         surrogate                 as long       ' Number of surrogate in the data1 wstring needed for windows
+	'	private:
+         _data                     as Wstring ptr' Data wstring (in Utf16 in windows or Utf32 in linux )
+         _length                      as long       ' lenght in wstring (not bytes) including surrogate parts in win
+         _size                     as long       ' size in bytes of allocated memory
+         _surrogate                 as long       ' Number of surrogate in the data1 wstring needed for windows
+         public:
 
          Declare Operator Cast() as Wstring ptr
          Declare Operator Cast() as string
@@ -160,14 +154,14 @@
 
       Type clsKeyList
 			Private:
-            m_nGrowBy              As long       ' how big to grow the list by when needed
-            m_nCount               As long       ' current number of elements in the list
-            m_nCurrent             As long       ' current position in the list
+            _GrowBy              As long       ' how big to grow the list by when needed
+            _Count               As long       ' current number of elements in the list
+            _Current             As long       ' current position in the list
 
-            Declare Function _CreateNode() As long
-            Declare Function _DeleteNode(ByVal nIndex As long) As long
+            Declare Function CreateNode() As long
+            Declare Function DeleteNode(ByVal nIndex As long) As long
 			Public:
-            m_temp                 As long = 0   'to know if list is temp or not
+            _temporary                 As long = 0   'to know if list is temp or not
             Declare Function Store(ByRef sKey As Const String) As long
             Declare Function GetByIndex(ByVal nIndex As long) As long
             Declare Function GetByKey(ByRef sKey As Const String) As long
@@ -188,29 +182,26 @@
 
 
       Constructor clsKeyList(ByVal nInitalGrowBy As long = - 1)
-         m_nGrowBy = Iif(nInitalGrowBy = - 1 , 20 , nInitalGrowBy)
-         m_nCount = 0
+         this._GrowBy = Iif(nInitalGrowBy = - 1 , 20 , nInitalGrowBy)
+         this._Count = 0
       End Constructor
       ''
       ''
       Destructor clsKeyList
          this.ClearList(TO_TEST_INFO)
       End Destructor
-      ''
-      ''
-      Property clsKeyList.GrowBy(ByVal nValue As long)
-         If nValue <= 0 Then Exit Property
-         this.m_nGrowBy = nValue
+
+      Property clsKeyList.GrowBy(ByVal newValue As long)
+         if ( newValue <= 0 ) then Exit Property
+         this._GrowBy = newValue
       End Property
-      ''
-      ''
+
       Property clsKeyList.GrowBy() As long
-         Property = this.m_nGrowBy
+         Property = this._GrowBy
       End Property
-      ''
-      ''
+
       Property clsKeyList.Count() As long
-         Property = this.m_nCount
+         Property = this._Count
       End Property
       ''
       ''
@@ -218,18 +209,20 @@
          This.FreeAll(flag)
          Erase M_ARRAYLIST
          Erase UBYTE_STRING
-         m_nCount = 0
+         this._Count = 0
          Function = 1
       End Function
       ''
       ''
-      Private Function clsKeyList._CreateNode() As long
-         Dim ub                As long
-         ub = Ubound(M_ARRAYLIST)
-         m_nCount = m_nCount + 1
+      Private Function clsKeyList.CreateNode() As long
+         Dim upperBound As long = Ubound(M_ARRAYLIST)
+         this._Count = this._Count + 1
+         
          ' Determine if the lists need to be grown in order to accomodate the new node.
-         If m_nCount > ub Then ReDim Preserve M_ARRAYLIST(ub + m_nGrowBy) As string
-         Return m_nCount - 1                     ' zero based position in array
+         If this._Count > upperBound Then 
+			ReDim Preserve M_ARRAYLIST(upperBound + this._GrowBy) As string
+		 end if
+         Return this._count - 1                     ' zero based position in array
       End Function
       ''
       ''
@@ -240,16 +233,16 @@
          If this.GetByKey(sKey) Then
             ' m_nCurrent is already set in GetByKey if found successfully
          Else
-            m_nCurrent = this._CreateNode()
+            this._Current = this.CreateNode()
          End If
-         M_ARRAYLIST(m_nCurrent) = sKey
+         M_ARRAYLIST(this._Current) = sKey
          Return 1
       End Function
       ''
       ''
-      Private Function clsKeyList.GetByIndex(ByVal nIndex As long) As long
-         If (nIndex >= 0) And (nIndex < m_nCount) Then
-            m_nCurrent = nIndex
+      Private Function clsKeyList.GetByIndex(ByVal index As long) As long
+         If (index >= 0) And (index < this._Count) Then
+            this._Current = index
             Return 1
          End If
          Return 0
@@ -259,7 +252,7 @@
       Private Function clsKeyList.GetByKey(ByRef sKey As Const String) As long
          For i As long = LBound(M_ARRAYLIST) To Ubound(M_ARRAYLIST)
             If M_ARRAYLIST(i) = sKey Then
-               m_nCurrent = i
+               this._Current = i
                Return 1
             End If
          Next
@@ -269,26 +262,26 @@
       ''
       Private Function clsKeyList.GetKeyString(ByVal nIndex As long = - 1) As String
          If nIndex <> - 1 Then this.GetByIndex(nIndex)
-         If (m_nCount > 0) And (m_nCurrent >= LBound(M_ARRAYLIST)) And _
-               (m_nCurrent <= Ubound(M_ARRAYLIST)) Then
-            Return M_ARRAYLIST(m_nCurrent)
+         If (this._Count > 0) And (this._Current >= LBound(M_ARRAYLIST)) And _
+               (this._Current <= Ubound(M_ARRAYLIST)) Then
+            Return M_ARRAYLIST(this._Current)
          End If
       End Function
       ''
       ''
-      Private Function clsKeyList._DeleteNode(ByVal nIndex As long) As long
+      Private Function clsKeyList.DeleteNode(ByVal nIndex As long) As long
          ' Private function that compresses the array
          For i As long = nIndex To Ubound(M_ARRAYLIST) - 1
             M_ARRAYLIST(i) = M_ARRAYLIST(i + 1)
          Next
-         m_nCount = m_nCount - 1
+         this._Count = this._Count - 1
          Return 1
       End Function
       ''
       ''
       Private Function clsKeyList.DeleteByIndex(ByVal nIndex As long) As long
          If this.GetByIndex(nIndex) Then
-            this._DeleteNode(nIndex)
+            this.DeleteNode(nIndex)
             Return 1
          End If
          Return 0
@@ -297,7 +290,7 @@
       ''
       Private Function clsKeyList.DeleteByKey(ByRef sKey As Const String) As long
          If this.GetByKey(sKey) Then
-            this._DeleteNode(m_nCurrent)
+            this.DeleteNode(this._Current)
             Return 1
          End If
          Return 0
@@ -333,9 +326,7 @@
 
 
    ''::::: internal sub to manage allocated mem
-   private sub hRealloc(byval s as uStringW ptr , _
-            byval chars as long , _
-            byval dopreserve as long)
+   private sub hRealloc(byval s as uStringW ptr , byval chars as long , byval dopreserve as long)
       dim         as long newsize
       dim         as long oldlen
       dim         as long newsize2
@@ -349,80 +340,80 @@
          newsize = (chars + 15) and not 15       ' alloc every 16-chars remember chars are 2 or 4 bytes
       end if
       newsize2 = newsize * len(wstring)
-      if chars = 0 and (s -> data1 <> 0) and s -> len1 = 0 THEN exit sub
-      if ((s -> data1 = 0) or (s -> data1 <> 0 and newsize2 <> s -> size1)) then
+      if chars = 0 and (s->_data <> 0) and s->_length = 0 THEN exit sub
+      if ((s->_data = 0) or (s->_data <> 0 and newsize2 <> s->_size)) then
          if (dopreserve = 0) then
             sur = 0
-            if (s -> data1 = 0) then
+            if (s->_data = 0) then
                sp2 = ""
-               s -> data1 = allocate(newsize2 + len(wstring))
-               if (s -> data1 = 0) then          '' failed? try again
-                  s -> data1 = allocate(newsize2 + len(wstring))
-                  if (s -> data1 = 0) then error(4)
+               s->_data = allocate(newsize2 + len(wstring))
+               if (s->_data = 0) then          '' failed? try again
+                  s->_data = allocate(newsize2 + len(wstring))
+                  if (s->_data = 0) then error(4)
                end if
             else
-               p = s -> data1
+               p = s->_data
                sp2 = str(p)
-               s -> data1 = reallocate(p , newsize2 + len(wstring))
-               if (s -> data1 = 0) then          '' failed? try again
-                  s -> data1 = reallocate(p , newsize2 + len(wstring))
-                  if (s -> data1 = 0) then error(4)
+               s->_data = reallocate(p , newsize2 + len(wstring))
+               if (s->_data = 0) then          '' failed? try again
+                  s->_data = reallocate(p , newsize2 + len(wstring))
+                  if (s->_data = 0) then error(4)
                end if
             end if
-            if s -> data1 <> 0 then
-               Clear(*(s -> data1) , 0 , newsize2 + len(wstring)) 'put 0 in all bytes
+            if s->_data <> 0 then
+               Clear(*(s->_data) , 0 , newsize2 + len(wstring)) 'put 0 in all bytes
                #ifdef __U_CLEAN_MEM__
                   '**** unstore the previous pointer
                   if sp2 <> "" then DWSTRING_LIST_GLOB.DeleteByKey(sp2)
                   '**** store the pointer to be able to deallocate
-                  DWSTRING_LIST_GLOB.Store(str(s -> data1))
+                  DWSTRING_LIST_GLOB.Store(str(s->_data))
                #endif
                #ifdef __VERBOSE_MODE__
                   if TO_TEST_INFO = 1 and sp2 <> "" then
                      print "Free_N  " ; sp2
-                     print "ReAlloc_N  " ; s -> data1 , newsize2 + len(wstring)
+                     print "ReAlloc_N  " ; s->_data , newsize2 + len(wstring)
                   elseif TO_TEST_INFO = 1 then
-                     print "Alloc_New  " ; s -> data1 , newsize2 + len(wstring)
+                     print "Alloc_New  " ; s->_data , newsize2 + len(wstring)
                   end if
                #Endif
             end if
          else                                    '' preserve..
-            p = s -> data1
+            p = s->_data
             sp2 = str(p)
-            oldlen = s -> len1
-            sur = s -> surrogate
-            s -> data1 = reallocate(p , newsize2 + len(wstring))
+            oldlen = s->_length
+            sur = s->_surrogate
+            s->_data = reallocate(p , newsize2 + len(wstring))
             '' failed? try again
-            if (s -> data1 = 0) then
-               s -> data1 = reallocate(p , newsize2 + len(wstring))
-               if (s -> data1 = 0) then error(4)
+            if (s->_data = 0) then
+               s->_data = reallocate(p , newsize2 + len(wstring))
+               if (s->_data = 0) then error(4)
             end if
-            if s -> data1 <> 0 then
-               Clear(*(s -> data1 + chars) , 0 , newsize2 + len(wstring) - chars * len(wstring)) 'put 0 in all remaining bytes
+            if s->_data <> 0 then
+               Clear(*(s->_data + chars) , 0 , newsize2 + len(wstring) - chars * len(wstring)) 'put 0 in all remaining bytes
                #ifdef __U_CLEAN_MEM__
                   '**** unstore the previous pointer
                   DWSTRING_LIST_GLOB.DeleteByKey(sp2)
                   '**** store the pointer to be able to deallocate
-                  DWSTRING_LIST_GLOB.Store(str(s -> data1))
+                  DWSTRING_LIST_GLOB.Store(str(s->_data))
                #endif
                #ifdef __VERBOSE_MODE__
                   if TO_TEST_INFO = 1 then print "Free_P  " ; sp2
-                  if TO_TEST_INFO = 1 then print "ReAlloc_P  " ; s -> data1 , newsize2 + len(wstring)
+                  if TO_TEST_INFO = 1 then print "ReAlloc_P  " ; s->_data , newsize2 + len(wstring)
                #endif
             end if
          end if
-         s -> size1 = newsize2
+         s->_size = newsize2
       else
-         Clear(*(s -> data1 + chars) , 0 , newsize2 + len(wstring) - chars * len(wstring)) 'put 0 in all remaining bytes
+         Clear(*(s->_data + chars) , 0 , newsize2 + len(wstring) - chars * len(wstring)) 'put 0 in all remaining bytes
       end if
-      s -> len1 = chars
+      s->_length = chars
       if len(wstring) = 4 then
-         s -> surrogate = 0
+         s->_surrogate = 0
       else
          if chars = 0 THEN
-            s -> surrogate = 0
+            s->_surrogate = 0
          else
-            s -> surrogate = sur
+            s->_surrogate = sur
          end if
       end if
    end sub
@@ -439,21 +430,18 @@
 
    ''::::: to force free/clean an uStringW
    private sub kill_uStringW(byref dst as uStringW)
-      if dst.data1 <> 0 THEN
+      if dst._data <> 0 THEN
          #ifdef __U_CLEAN_MEM__
             '**** unstore the pointer
-            DWSTRING_LIST_GLOB.DeleteByKey(str(dst.data1))
+            DWSTRING_LIST_GLOB.DeleteByKey(str(dst._data))
             #ifdef __VERBOSE_MODE__
-               print "FreeW " ; dst.data1 , *dst.data1 'v1.02
+               print "FreeW " ; dst._data , *dst._data 'v1.02
             #endif
          #endif
-         clear(*(dst.data1) , 0 , dst.size1 + len(wstring))
-         Deallocate(dst.data1)
+         clear(*(dst._data) , 0 , dst._size + len(wstring))
+         Deallocate(dst._data)
       END IF
-      dst.data1 = 0
-      dst.len1 = 0
-      dst.size1 = 0
-      dst.surrogate = 0
+      ' No need to set anything to 0.
    end sub
 
    ''::::: v1.02 to force free/clean an uStringW array
@@ -464,20 +452,20 @@
    end sub
 
    ''::::: external to count surrogate elements in uStringW ( needed for windows only)
-   private function u_surX(byref src as uStringW) as long
+   private function u_surX(byref source as uStringW) as long
       dim         as long x
       dim         as long y
       dim         as long z
       dim         as ushort us1
-      if len(wstring) = 4 or src.len1 = 0 THEN return 0
-      z = src.len1
+      if len(wstring) = 4 or source._length = 0 THEN return 0
+      z = source._length
       y = 0 : x = 0
       Do While x < z
          x += 1
-         if IS_HIGH_UTF16_SUR(src.data1[x - 1]) then 'asc(src.data1[x-1])) then
+         if IS_HIGH_UTF16_SUR(source._data[x - 1]) then 'asc(source._data[x-1])) then
             if x > z - 1 THEN return x * - 1     'return negative position to show where error
             x += 1
-            if IS_LOW_UTF16_SUR(src.data1[x - 1]) then 'asc(src.data1[x-1])) then
+            if IS_LOW_UTF16_SUR(source._data[x - 1]) then 'asc(source._data[x-1])) then
                y += 1
             else
                return x * - 1                    'return negative position to show where error
@@ -487,21 +475,21 @@
       function = y
    end function
 
-   private function u_NextSurr(byref src as uStringW , istart as long = 1) as long
+   private function u_NextSurr(byref source as uStringW , istart as long = 1) as long
       dim         as long x
       dim         as long y
       dim         as long z
       dim         as ushort us1
 
-      if len(wstring) = 4 or src.len1 = 0 or istart > src.len1 or istart < 1 or src.surrogate = 0 THEN return 0
-      z = len(src.len1)
+      if len(wstring) = 4 or source._length = 0 or istart > source._length or istart < 1 or source._surrogate = 0 THEN return 0
+      z = len(source._length)
       y = 0 : x = istart - 1
       Do While x < z
          x += 1
-         if IS_HIGH_UTF16_SUR(src.data1[x - 1]) then 'asc(src.data1[x-1])) then
+         if IS_HIGH_UTF16_SUR(source._data[x - 1]) then 'asc(source._data[x-1])) then
             if x > z - 1 THEN return x * - 1     'return negative position to show where error
             x += 1
-            if IS_LOW_UTF16_SUR(src.data1[x - 1]) then 'asc(src.data1[x-1])) then
+            if IS_LOW_UTF16_SUR(source._data[x - 1]) then 'asc(source._data[x-1])) then
                function = x - 1
             else
                return x * - 1                    'return negative position to show where error
@@ -511,8 +499,8 @@
       function = 0
    end function
 
-   private function u_SurrCount(byref src as uStringW) as long
-      return src.surrogate
+   private function u_SurrCount(byref source as uStringW) as long
+      return source._surrogate
    end function
 
    ''::::: internal sub , because risk with surrogate story
@@ -521,109 +509,109 @@
 
       p = 0
       do
-         p = instr(p + 1 , *ini.data1 , *cast(wstring ptr , varptr(old)))
+         p = instr(p + 1 , *ini._data , *cast(wstring ptr , varptr(old)))
          if p = 0 then exit sub
-         *(ini.data1 + p - 1) = us1
+         *(ini._data + p - 1) = us1
       loop
       if len(wstring) = 4 then
-         ini.surrogate = 0
+         ini._surrogate = 0
       else
-         ini.surrogate = u_surX(ini)
+         ini._surrogate = u_surX(ini)
       end if
    end sub
 
    ''::::: internal sub
-   private sub DWstrAssign(byref dst as uStringW , byval src as Wstring ptr , _
-            byval itemp as long = 0)
-      dim         as long src_len
-
-      if src = 0 THEN
-         src_len = 0
+   private sub DynamicWStringAssign(byref destination as uStringW , byval source as Wstring ptr , byval itemp as long = 0)
+      dim as long sourceLength
+      
+      if ( source = 0 ) then
+         sourceLength = 0
       else
-         src_len = len(*src)
-      END IF
-      if (src_len = 0) then
-         hRealloc(@dst , 0 , 0)
-         exit sub
+         sourceLength = len(*source)
       end if
-      hRealloc(@dst , src_len , 0)
-      if (dst.data1 <> 0) then
-         *dst.data1 = *src
+      
+	  hRealloc(@destination , sourceLength , 0)
+	  
+	  if ( sourceLength = 0 ) then
+	    exit sub
+	  end if
+      
+      if ( destination._data <> 0 ) then
+         *destination._data = *source
          '#if __FB_VERSION__ < "0.90.0"
-         wReplaceCharA(dst , 128 , 8364)         ' trap for bad coding € ,at least on western europe countries
+         wReplaceCharA(destination , 128 , 8364)         ' trap for bad coding € ,at least on western europe countries
          '#endif
-         if len(wstring) = 4 then
-            dst.surrogate = 0
+         if ( len(wstring) = 4 ) then
+            destination._surrogate = 0
          else
-            dst.surrogate = u_surX(dst)
+            destination._surrogate = u_surX(destination)
          end if
       end if
    end sub
 
    ''::::: external function to input wstring into uString ( accept escape sequence also like !"\uXXYY")
-   private function u_Wstr(byval src as Wstring ptr) as uStringW
+   private function u_Wstr(byval source as Wstring ptr) as uStringW
       dim dst               as uStringW
 
-      DWstrAssign(dst , src)
+      DynamicWStringAssign(dst , source)
       function = dst
    end function
 
    ''::::: internal sub to duplicate uStringW
-   private sub DWstrDup(byref dst as uStringW , byref src as uStringW)
-      hRealloc(@dst , src.len1 , 0)
-      if (dst.data1 <> 0) then
-         *dst.data1 = *src.data1
-         dst.surrogate = src.surrogate
+   private sub DuplicateUStringW(byref destination as uStringW , byref source as uStringW)
+      hRealloc(@destination , source._length , 0)
+      if (destination._data <> 0) then
+         *destination._data = *source._data
+         destination._surrogate = source._surrogate
       end if
    end sub
 
    ''::::: internal sub to Concat&Assign uStringW
-   private sub DWstrConcatAssign(byref dst as uStringW , byval src as Wstring ptr)
+   private sub DWstrConcatAssign(byref dst as uStringW , byval source as Wstring ptr)
       dim dst_len           as long
-      dim src_len           as long
+      dim source_len           as long
 
-      if src = 0 THEN
-         src_len = 0
+      if source = 0 THEN
+         source_len = 0
       else
-         src_len = len(*src)
+         source_len = len(*source)
       END IF
-      if dst.data1 <> 0 THEN
-         if src_len = 0 THEN exit sub
-         dst_len = dst.len1
-         hRealloc(@dst , dst_len + src_len , 1)
-         if (dst.data1 <> 0) then
-            *(dst.data1 + dst_len) = *src
-            dst.surrogate = u_surX(dst)
+      if dst._data <> 0 THEN
+         if source_len = 0 THEN exit sub
+         dst_len = dst._length
+         hRealloc(@dst , dst_len + source_len , 1)
+         if (dst._data <> 0) then
+            *(dst._data + dst_len) = *source
+            dst._surrogate = u_surX(dst)
          end if
       else
-         dst = u_Wstr(src)
+         dst = u_Wstr(source)
       end if
    end sub
 
    ''::::: internal sub to Concat&Assign uStringW with existing one
-   private sub uConcatAssign(byref dst as uStringW , byref src as uStringW)
+   private sub uConcatAssign(byref dst as uStringW , byref source as uStringW)
       dim dst_len           as long
-      dim src_len           as long
+      dim source_len           as long
 
-      src_len = src.len1
-      if src_len = 0 THEN exit sub
-      if dst.data1 <> 0 THEN
-         dst_len = dst.len1
-         hRealloc(@dst , dst_len + src_len , 1)
-         if (dst.data1 <> 0) then
-            *(dst.data1 + dst_len) = *src.data1
-            dst.surrogate += src.surrogate
+      source_len = source._length
+      if source_len = 0 THEN exit sub
+      if dst._data <> 0 THEN
+         dst_len = dst._length
+         hRealloc(@dst , dst_len + source_len , 1)
+         if (dst._data <> 0) then
+            *(dst._data + dst_len) = *source._data
+            dst._surrogate += source._surrogate
          end if
       end if
    end sub
 
    ''::::: external function to concat 2 uStringW into new uStringW
-   private function u_Concat(byref dst as uStringW , byref src as uStringW) as uStringW
-      dim as wstring ptr pw1 = src.data1
-      dim retu              as uStringW
-      DWstrDup(retu , dst)                       'DWstrDup(dst)'modified in v1.02 not needed to duplicate
-      DWstrConcatAssign(retu , pw1)
-      function = retu
+   private function u_Concat(byref destination as uStringW , byref source as uStringW) as uStringW
+      dim result as uStringW
+      DuplicateUStringW(result , destination)                       'DuplicateUStringW(dst)' modified in v1.02 not needed to duplicate
+      DWstrConcatAssign(result , source._data)
+      return result
    end function
 
    ''::::: internal function to replace/remove substrings
@@ -636,10 +624,10 @@
       dim p                 as long
       dim remtext           as uStringW
 
-      DWstrDup(remtext , ini)
-      oldlen = oldtext.len1
-      newlen = newtext.len1
-      if oldlen = 0 or ini.len1 = 0 or oldlen > ini.len1 THEN
+      DuplicateUStringW(remtext , ini)
+      oldlen = oldtext._length
+      newlen = newtext._length
+      if oldlen = 0 or ini._length = 0 or oldlen > ini._length THEN
          function = remtext
          exit function
       end if
@@ -647,14 +635,14 @@
       dim text              as uStringW
 
       do
-         p = instr(1 , *remtext.data1 , *oldtext.data1)
+         p = instr(1 , *remtext._data , *oldtext._data)
          if (p = 0) then
-            DWstrConcatAssign(text , remtext.data1)
+            DWstrConcatAssign(text , remtext._data)
             exit do
          end if
-         DWstrConcatAssign(text , left(*remtext.data1 , p - 1))
-         if newlen > 0 then DWstrConcatAssign(text , newtext.data1)
-         DWstrAssign(remtext , mid(*remtext.data1 , p + oldlen))
+         DWstrConcatAssign(text , left(*remtext._data , p - 1))
+         if newlen > 0 then DWstrConcatAssign(text , newtext._data)
+         DynamicWStringAssign(remtext , mid(*remtext._data , p + oldlen))
       loop
       function = text
    end function
@@ -664,27 +652,27 @@
       dim p                 as long
       dim dst               as uStringW
 
-      if ini.len1 = 0 THEN
+      if ini._length = 0 THEN
          function = dst
          exit function
       END IF
-      if oldtext.len1 = 0 THEN
-         DWstrDup(dst , ini)
+      if oldtext._length = 0 THEN
+         DuplicateUStringW(dst , ini)
          function = dst
          exit function
       END IF
-      if oldtext.len1 > 0 and newtext.len1 <> 1 THEN
+      if oldtext._length > 0 and newtext._length <> 1 THEN
          dst = wReplace(ini , oldtext , newtext)
          function = dst
          exit function
       end if
-      DWstrDup(dst , ini)
-      wReplaceCharA(dst , asc(*oldtext.data1) , asc(*newtext.data1))
+      DuplicateUStringW(dst , ini)
+      wReplaceCharA(dst , asc(*oldtext._data) , asc(*newtext._data))
       function = dst
    end Function
 
    'internal function
-   private function surrogate_byt(tmp as string , flag16 as long = 16) as string
+   private function surrogate_byte(tmp as string , flag16 as long = 16) as string
       dim         as ulong c
       dim         as ushort u1
       dim         as ushort u2
@@ -744,8 +732,8 @@
 
    ''::::: internal function to code uStringW from string definition ok for win or linux
    ' can accept \uXXYY 4 hex digits coding or added \wZZXXYY 6 hex digits coding
-   private function Ucode_str_A(src as string , byref ilon2 as long , byref isur as long) as any ptr
-      dim ilen as long = len(src)
+   private function Ucode_str_A(source as string , byref ilon2 as long , byref isur as long) as any ptr
+      dim ilen as long = len(source)
       dim isize as long = 0
       dim idim as long = 8 * len(wstring)
       dim ityp as long = len(wstring) - 2        'to complete the extra bytes
@@ -759,8 +747,8 @@
       dim x as long = 1
 
       do while(x < ilen + 1)
-         if ucase(mid(src , x , 2)) = "\U" and x < ilen - 4 THEN ' pseudo escape sequence as normal \uYYYY
-            tmp = ucase(mid(src , x + 2 , 4))
+         if ucase(mid(source , x , 2)) = "\U" and x < ilen - 4 THEN ' pseudo escape sequence as normal \uYYYY
+            tmp = ucase(mid(source , x + 2 , 4))
             for y as long = 1 to 4
                if instr(model , mid(tmp , y , 1)) = 0 THEN tmp = "003F" 'not understood force ?"
             NEXT
@@ -775,8 +763,8 @@
             c = valint( "&H" & tmp)
             'dim as string cod16 = coding (c) ' to verify
             if IS_HIGH_UTF16_SUR(c) then         'surrogate pair?
-               if x + 11 > ilen or mid(src , x + 6 , 2) <> "\U" THEN exit do
-               tmp4 = ucase(mid(src , x + 8 , 4))
+               if x + 11 > ilen or mid(source , x + 6 , 2) <> "\U" THEN exit do
+               tmp4 = ucase(mid(source , x + 8 , 4))
                u1 = valint( "&H" & tmp4)
                if IS_LOW_UTF16_SUR(u1) then
                   if len(wstring) = 2 THEN
@@ -802,10 +790,10 @@
             END IF
 escape1:
             x += 6
-         elseif ucase(mid(src , x , 2)) = "\W" and x < ilen - 6 THEN ' new pseudo escape sequence as \wZYYXX
+         elseif ucase(mid(source , x , 2)) = "\W" and x < ilen - 6 THEN ' new pseudo escape sequence as \wZYYXX
             ' print:print "Ucode_str_A new sequ \wZZYYXX ": print
             ' to be able to get the unicode > 2 bytes codes directly
-            tmp = ucase(mid(src , x + 2 , 6))
+            tmp = ucase(mid(source , x + 2 , 6))
             inot = 0
             for y as long = 1 to 6
                if instr(model , mid(tmp , y , 1)) = 0 THEN
@@ -856,7 +844,7 @@ escape1:
                      isur += 1
                      'print "second : " ; hex(HiByte(u1)),hex(LoByte(u1))
                   else                           ' correction
-                     tmp = ucase(mid(src , x + 4 , 4))
+                     tmp = ucase(mid(source , x + 4 , 4))
                      isize = isize + len(wstring)
                      if isize > idim - len(wstring) then
                         idim = idim * 2
@@ -875,7 +863,7 @@ escape1:
                redim preserve as ubyte UBYTE_STRING(0 to idim - 1)
             end if
 
-            UBYTE_STRING(isize - 2 - ityp) = asc(mid(src , x , 1))
+            UBYTE_STRING(isize - 2 - ityp) = asc(mid(source , x , 1))
             UBYTE_STRING(isize - 1 - ityp) = 0
 
             if ityp > 0 THEN                     ' only if len(wstring) =4
@@ -914,12 +902,12 @@ escape1:
       dim as wstring ptr wtem = Ucode_str_A(st1 , ilen , isur)
       'print "ilen : ";ilen,*wtem,"st1",st1,len(st1)
       hRealloc(@remtext , ilen , 0)
-      if (remtext.data1 <> 0) then
-         *remtext.data1 = *wtem                  '& chr(0) & chr(0)
+      if (remtext._data <> 0) then
+         *remtext._data = *wtem                  '& chr(0) & chr(0)
          if len(wstring) = 4 then
-            remtext.surrogate = 0
+            remtext._surrogate = 0
          else
-            remtext.surrogate = isur
+            remtext._surrogate = isur
          end if
       end if
    end sub
@@ -946,12 +934,12 @@ escape1:
       dim         as string s2
       dim dst               as uStringW
 
-      if ini.len1 = 0 THEN function = dst
+      if ini._length = 0 THEN function = dst
 
       dim so1               as uStringW
       dim sn1               as uStringW
 
-      DWstrDup(dst , ini)
+      DuplicateUStringW(dst , ini)
       if old > &H10FFFF or us1 > &H10FFFF THEN
          function = dst
          exit function
@@ -978,11 +966,11 @@ escape1:
    end function
 
    ''::::: carrefull in windows (utf16) counts also surrogate parts ( adding 1 wstring ) its more chain size
-   private function u_Wlen_simple(ByRef src as Const uStringW) as long
-      if src.data1 = 0 THEN
+   private function u_Wlen_simple(ByRef source as Const uStringW) as long
+      if source._data = 0 THEN
          Function = 0
       else
-         Function = src.len1
+         Function = source._length
       END IF
    end function
 
@@ -1009,14 +997,14 @@ escape1:
       end if
       dim uNew1             as uStringW
       u_From_CodeString(stemp , uNew1)
-      ulen = uNew1.len1
+      ulen = uNew1._length
       hRealloc(@udest , ulen * icount , 0)
       for x as long = 0 to(icount - 1) *ulen step ulen
-         u1 = uNew1.data1[0]
-         udest.data1[x] = u1
+         u1 = uNew1._data[0]
+         udest._data[x] = u1
          if ulen = 2 THEN
-            u1 = uNew1.data1[1]
-            udest.data1[x + 1] = u1
+            u1 = uNew1._data[1]
+            udest._data[x + 1] = u1
          end if
       NEXT
       function = udest
@@ -1040,32 +1028,32 @@ escape1:
    End function
 
 
-   private function u_Equal(ByRef src as Const uStringW , ByRef src2 as Const uStringW) as long
-      if src.data1 = 0 and src2.data1 = 0 THEN return 1
-      if src.len1 <> src2.len1 or src.data1 = 0 or src2.data1 = 0 THEN return 0
-      if instr(*(src.data1) , *(src2.data1)) = 1 and _
-            len(*(src.data1)) = len(*(src2.data1)) THEN return 1
+   private function u_Equal(ByRef source as Const uStringW , ByRef source2 as Const uStringW) as long
+      if source._data = 0 and source2._data = 0 THEN return 1
+      if source._length <> source2._length or source._data = 0 or source2._data = 0 THEN return 0
+      if instr(*(source._data) , *(source2._data)) = 1 and _
+            len(*(source._data)) = len(*(source2._data)) THEN return 1
    end function
 
 
 
-   private function u_W_U16Start(ByRef src as Const uStringW , posi as long) as long
+   private function u_W_U16Start(ByRef source as Const uStringW , posi as long) as long
       dim         as long x
       dim         as long y
       dim         as ushort us1
       dim         as ushort us2
 
-      if src.data1 = 0 or src.len1 = 0 or posi < 1 or posi > src.len1 THEN return 0
+      if source._data = 0 or source._length = 0 or posi < 1 or posi > source._length THEN return 0
       if len(wstring) = 4 THEN return posi
       x = 0 : y = 0
-      Do While y < posi and x < src.len1
+      Do While y < posi and x < source._length
          x += 1
-         us1 = src.data1[x - 1]
-         if IS_HIGH_UTF16_SUR(us1) then          'asc(src.data1[x-1])) then
-            if x > src.len1 - 1 THEN return x * - 1 'return negative position to show where error
+         us1 = source._data[x - 1]
+         if IS_HIGH_UTF16_SUR(us1) then          'asc(source._data[x-1])) then
+            if x > source._length - 1 THEN return x * - 1 'return negative position to show where error
             x += 1
-            us2 = src.data1[x - 1]
-            if IS_LOW_UTF16_SUR(us2) then        'asc(src.data1[x-1])) then
+            us2 = source._data[x - 1]
+            if IS_LOW_UTF16_SUR(us2) then        'asc(source._data[x-1])) then
                y += 1
                if y = posi THEN return x - 1
             else
@@ -1081,29 +1069,29 @@ escape1:
 
 
 
-   private function u_W_U16len(ByRef src as Const uStringW , byref posi as long , pos2 as long = 134217725) as long
+   private function u_W_U16len(ByRef source as Const uStringW , byref posi as long , pos2 as long = 134217725) as long
       dim         as long x
       dim         as long y
       dim         as long z
       dim         as ushort us1
       dim         as ushort us2
 
-      if src.data1 = 0 or src.len1 = 0 or posi < 1 or posi > src.len1 or pos2 < 1 THEN return 0
+      if source._data = 0 or source._length = 0 or posi < 1 or posi > source._length or pos2 < 1 THEN return 0
       if posi > 1 then
-         z = u_W_U16Start(src , posi)
+         z = u_W_U16Start(source , posi)
          if z < 1 THEN return 0
       else
          z = 1
       end if
       posi = z
       y = 0 : x = z
-      Do While y < pos2 and x <= src.len1
-         us1 = src.data1[x - 1]
-         if IS_HIGH_UTF16_SUR(us1) then          'asc(src.data1[x-1])) then
-            if x > src.len1 - 1 THEN return x * - 1 'return negative position to show where error
+      Do While y < pos2 and x <= source._length
+         us1 = source._data[x - 1]
+         if IS_HIGH_UTF16_SUR(us1) then          'asc(source._data[x-1])) then
+            if x > source._length - 1 THEN return x * - 1 'return negative position to show where error
             x += 1
-            us2 = src.data1[x - 1]
-            if IS_LOW_UTF16_SUR(us2) then        'asc(src.data1[x-1])) then
+            us2 = source._data[x - 1]
+            if IS_LOW_UTF16_SUR(us2) then        'asc(source._data[x-1])) then
                y += 1
                if y = pos2 THEN return x - z + 1
             else
@@ -1119,9 +1107,9 @@ escape1:
    end function
 
    ''::::: give number of surrogate into uStringW for win only
-   private function u_Exist_Sur(ByRef src as Const uStringW , posi as long = 1) as long
-      if src.data1 = 0 or src.len1 = 0 or posi = 0 THEN return 0
-      function = src.surrogate
+   private function u_Exist_Sur(ByRef source as Const uStringW , posi as long = 1) as long
+      if source._data = 0 or source._length = 0 or posi = 0 THEN return 0
+      function = source._surrogate
    end function
 
 
@@ -1129,36 +1117,36 @@ escape1:
 
 
    ''::::: equivalent to len(string) but counts units no wstrings : important for windows ; for linux not
-   private function u_Len(ByRef src as Const uStringW) as long
-      if src.len1 = 0 THEN
+   private function u_Len(ByRef source as Const uStringW) as long
+      if source._length = 0 THEN
          return 0
-      elseif src.surrogate = 0 then
-         return src.len1
+      elseif source._surrogate = 0 then
+         return source._length
       END IF
-      function = src.len1 - src.surrogate
+      function = source._length - source._surrogate
    end function
 
    ''::::: equivalent to Strptr for uStringW
-   private Function u_Strptr(ByRef src as uStringW) as wstring ptr
-      function = src.data1
+   private Function u_Strptr(ByRef source as uStringW) as wstring ptr
+      function = source._data
    END FUNCTION
 
-   private sub u_PutLen(ByRef src as uStringW)
-      hRealloc(@src , len(*src.data1) , 1)
+   private sub u_PutLen(ByRef source as uStringW)
+      hRealloc(@source , len(*source._data) , 1)
    END sub
 
    ''::::: equivalent to Mid for uStringW, but carrefull in windows (utf16) surrogate parts ( adding 1 wstring )
    private Function u_Mid(ByRef str1 as Const uStringW , ByVal start as long , ByVal nb as long = 268435455) as uStringW
       dim dest              as uStringW
-      if str1.data1 = 0 or str1.len1 = 0 or nb < 1 or start < 1 or start > str1.len1 THEN
+      if str1._data = 0 or str1._length = 0 or nb < 1 or start < 1 or start > str1._length THEN
          function = dest
          exit function
       END IF
-      if nb > str1.len1 - (start - 1) THEN nb = str1.len1 - (start - 1)
-      if str1.surrogate <> 0 then
+      if nb > str1._length - (start - 1) THEN nb = str1._length - (start - 1)
+      if str1._surrogate <> 0 then
          nb = u_W_U16len(str1 , start , nb)
       end if
-      DWstrAssign(dest , mid(*str1.data1 , start , nb))
+      DynamicWStringAssign(dest , mid(*str1._data , start , nb))
       function = dest
    END FUNCTION
 
@@ -1169,36 +1157,36 @@ escape1:
       dim         as long y
       dim         as ulong us2
       dim         as ulong us1
-      if str1.data1 = 0 or str1.len1 = 0 THEN
+      if str1._data = 0 or str1._length = 0 THEN
          function = dest
          exit function
       END IF
-      y = str1.len1
+      y = str1._length
       hRealloc(@dest , y , 0)
-      if str1.surrogate = 0 then
+      if str1._surrogate = 0 then
          for x = y - 1 to 0 step - 1
-            us1 = str1.data1[x]
-            dest.data1[y - x - 1] = us1
+            us1 = str1._data[x]
+            dest._data[y - x - 1] = us1
          NEXT
       else
          for x = y - 1 to 0 step - 1
-            us2 = str1.data1[x]
+            us2 = str1._data[x]
             if IS_LOW_UTF16_SUR(us2) THEN
                if x - 1 < 0 THEN exit for
-               us1 = str1.data1[x - 1]
+               us1 = str1._data[x - 1]
                if IS_HIGH_UTF16_SUR(us1) THEN
-                  dest.data1[y - x] = us2
-                  dest.data1[y - x - 1] = us1
+                  dest._data[y - x] = us2
+                  dest._data[y - x - 1] = us1
                   x -= 1
                else
                   exit for
                end if
             else
-               dest.data1[y - x - 1] = us2
+               dest._data[y - x - 1] = us2
             END IF
          NEXT
       end if
-      dest.surrogate = str1.surrogate
+      dest._surrogate = str1._surrogate
       function = dest
    END FUNCTION
 
@@ -1206,18 +1194,18 @@ escape1:
    private Function u_Left(ByRef str1 as uStringW , ByVal nb as long) as uStringW
       dim dest              as uStringW
       dim         as long l1
-      if str1.data1 = 0 or str1.len1 = 0 or nb < 1 THEN
+      if str1._data = 0 or str1._length = 0 or nb < 1 THEN
          function = dest
          exit function
       END IF
-      if nb > str1.len1 THEN
-         DWstrDup(dest , str1)
+      if nb > str1._length THEN
+         DuplicateUStringW(dest , str1)
          function = dest
          exit function
       end if
       l1 = 1
-      if str1.surrogate <> 0 then nb = u_W_U16len(str1 , l1 , nb)
-      DWstrAssign(dest , left(*str1.data1 , nb))
+      if str1._surrogate <> 0 then nb = u_W_U16len(str1 , l1 , nb)
+      DynamicWStringAssign(dest , left(*str1._data , nb))
       function = dest
    END FUNCTION
 
@@ -1227,33 +1215,33 @@ escape1:
       dim temp              as uStringW
       dim temp2             as uStringW
       dim         as long l1
-      if str1.data1 = 0 or str1.len1 = 0 or nb < 1 THEN
+      if str1._data = 0 or str1._length = 0 or nb < 1 THEN
          function = dest
          exit function
       END IF
-      if nb > str1.len1 THEN
-         DWstrDup(dest , str1)
+      if nb > str1._length THEN
+         DuplicateUStringW(dest , str1)
          function = dest
          exit function
       end if
-      if str1.surrogate <> 0 then
+      if str1._surrogate <> 0 then
          l1 = 1
          temp = u_Reverse(str1)
          nb = u_W_U16len(temp , l1 , nb)
-         DWstrAssign(temp2 , left(*temp.data1 , nb))
+         DynamicWStringAssign(temp2 , left(*temp._data , nb))
          dest = u_Reverse(temp2)
       else
-         DWstrAssign(dest , right(*str1.data1 , nb))
+         DynamicWStringAssign(dest , right(*str1._data , nb))
       end if
       function = dest
    END FUNCTION
 
    '''::::: equivalent to Instr for uStringW, taking care in windows (utf16) of surrogate parts
    private Function u_Instr Overload(ByRef str1 as uStringW , ByRef sub1 as uStringW) as long
-      if str1.len1 = 0 or sub1.len1 = 0 then
+      if str1._length = 0 or sub1._length = 0 then
          function = 0
       else
-         function = instr(*(str1.data1) , *(sub1.data1))
+         function = instr(*(str1._data) , *(sub1._data))
       end if
    END FUNCTION
 
@@ -1263,49 +1251,51 @@ escape1:
       dim stemp             as uStringW
       dim stemp2            as uStringW
 
-      if str1.len1 = 0 or sub1.len1 = 0 or start = 0 then return 0
-      if str1.surrogate = 0 and sub1.surrogate = 0 THEN
+      if str1._length = 0 or sub1._length = 0 or start = 0 then return 0
+      if str1._surrogate = 0 and sub1._surrogate = 0 THEN
          if start > 0 THEN
-            return instr(start , *(str1.data1) , *(sub1.data1))
+            return instr(start , *(str1._data) , *(sub1._data))
          else
             stemp = u_Reverse(str1)
             stemp2 = u_Reverse(sub1)
             start = start * - 1
-            start = instr(start , *(stemp.data1) , *(stemp2.data1))
-            function = start                     'str1.len1 - start + 1
+            start = instr(start , *(stemp._data) , *(stemp2._data))
+            function = start                     'str1._length - start + 1
          END IF
-      elseif str1.surrogate = 0 and sub1.surrogate > 0 then
+      elseif str1._surrogate = 0 and sub1._surrogate > 0 then
          return 0
       else
          if start > 0 THEN
             start = u_W_U16Start(str1 , start)
-            return instr(start , *(str1.data1) , *(sub1.data1))
+            return instr(start , *(str1._data) , *(sub1._data))
          else
             stemp = u_Reverse(str1)
             stemp2 = u_Reverse(sub1)
             start = u_W_U16Start(stemp , start * - 1)
-            start = instr(start , *(stemp.data1) , *(stemp2.data1))
-            function = start                     'str1.len1 - start + 1
+            start = instr(start , *(stemp._data) , *(stemp2._data))
+            function = start                     'str1._length - start + 1
          END IF
       end if
    END FUNCTION
 
    '''::::: equivalent to Asc for uStringW
    private Function u_Asc(ByRef str1 as Const uStringW , ByVal pos1 As long = 1) as ulong
-      if str1.data1 = 0 or str1.len1 < pos1 then return 0
-      if len(wstring) = 4 then                   'not windows
-         function = asc(*(str1.data1) , pos1)
+      if str1._data = 0 or str1._length < pos1 then return 0
+      
+      if ( len(wstring) = 4 ) then                   'not windows
+         return asc(*(str1._data) , pos1)
       Else
-         dim hi as ulong = asc(*(str1.data1) , pos1)
-         if hi >= &HD800 and hi <= &HDBFF THEN   'check surrogate
-            dim lo as ulong = asc(*(str1.data1) , pos1 + 1)
-            if lo >= &HDC00 and lo <= &HDFFF THEN
-               function = ((hi - &HD800) *&H400) + (lo - &HDC00) + &H10000
+         dim highByte as ulong = asc(*(str1._data) , pos1)
+		 ' TODO: Magic numbers.
+         if ( highByte >= &HD800 and highByte <= &HDBFF ) then   'check surrogate
+            dim lowByte as ulong = asc(*(str1._data) , pos1 + 1)
+            if ( lowByte >= &HDC00 and lowByte <= &HDFFF ) then
+               function = ((highByte - &HD800) *&H400) + (lowByte - &HDC00) + &H10000
             else
                function = 0
             END IF
          else
-            function = hi
+            return highByte
          end if
       End if
    END FUNCTION
@@ -1314,24 +1304,25 @@ escape1:
    private Function u_Chr(icode as ulong) as uStringW
       dim str1              as uStringW
       dim stemp             as string
+      
       if icode = 0 or icode > &h10FFFF THEN
          function = str1
          exit function
       END IF
       if len(wstring) = 4 then
          hRealloc(@str1 , 1 , 0)
-         *str1.data1 = icode
+         *str1._data = icode
       else
          if icode > &hFFFF THEN
             dim as ushort u1 = LEAD_OFFSET + (icode shr 10)
             dim as ushort u2 = &hDC00 + (icode and &h3FF)
             hRealloc(@str1 , 2 , 0)
-            *str1.data1 = u1
-            *(str1.data1 + 1) = u2
-            str1.surrogate = 1
+            *str1._data = u1
+            *(str1._data + 1) = u2
+            str1._surrogate = 1
          else
             hRealloc(@str1 , 1 , 0)
-            *str1.data1 = icode
+            *str1._data = icode
          end if
       end if
       function = str1
@@ -1339,9 +1330,9 @@ escape1:
 
    '''::::: equivalent to Val for uStringW
    private Function u_Val(ByRef str1 as Const uStringW) as double
-      if str1.data1 = 0 then return 0
-      function = val(*(str1.data1))
-   END FUNCTION
+      if str1._data = 0 then return 0
+      return val(*(str1._data))
+   end function
 
    '''::::: v1.02 to get the index delimited substring for uStringW
    Private FUNCTION u_Parse(ByRef source as ustringW , ByRef delimiter as ustringW , index as long) as ustringW
@@ -1351,7 +1342,7 @@ escape1:
       Dim         As Long l
       dim str1              as uStringW
 
-      l = delimiter.len1
+      l = delimiter._length
       s = 1
       do
          If c = index - 1 then
@@ -1371,37 +1362,37 @@ escape1:
    'v1.02 u_Ucase ; u_Lcase ; u_Trim ; u_Ltrim ; u_Rtrim
    Private FUNCTION u_Ucase(ByRef source as ustringW) as ustringW
       dim str1              as uStringW
-      DWstrAssign(str1 , Ucase(*source.data1))
+      DynamicWStringAssign(str1 , Ucase(*source._data))
       function = str1
    End Function
 
    Private FUNCTION u_Lcase(ByRef source as ustringW) as ustringW
       dim str1              as uStringW
-      DWstrAssign(str1 , lcase(*source.data1))
+      DynamicWStringAssign(str1 , lcase(*source._data))
       function = str1
    End Function
 
    Private FUNCTION u_Trim(ByRef source as ustringW , utt as ustringW = " ") as ustringW
       dim str1              as uStringW
-      DWstrAssign(str1 , trim(*source.data1 , any * utt.data1))
+      DynamicWStringAssign(str1 , trim(*source._data , any * utt._data))
       function = str1
    End Function
 
    Private FUNCTION u_Ltrim(ByRef source as ustringW , utt as ustringW = " ") as ustringW
       dim str1              as uStringW
-      DWstrAssign(str1 , Ltrim(*source.data1 , any * utt.data1))
+      DynamicWStringAssign(str1 , Ltrim(*source._data , any * utt._data))
       function = str1
    End Function
 
    Private FUNCTION u_Rtrim(ByRef source as ustringW , utt as ustringW = " ") as ustringW
       dim str1              as uStringW
-      DWstrAssign(str1 , Rtrim(*source.data1 , any * utt.data1))
+      DynamicWStringAssign(str1 , Rtrim(*source._data , any * utt._data))
       function = str1
    End Function
 
    '''::::: same as uStringW ( more friendly form) ?
    private function u_Wdata(ByRef ini1 as uStringW) as wstring ptr
-      function = ini1.data1
+      function = ini1._data
    end function
 
    ''::::: ok for win or linux
@@ -1410,14 +1401,14 @@ escape1:
       dim as long chars = 0
       dim as string temp = ""
 
-      if ini1.data1 = 0 or ini1.len1 = 0 THEN return temp
-      do while(chars < ini1.len1)
-         c = ini1.data1[chars]
+      if ini1._data = 0 or ini1._length = 0 THEN return temp
+      do while(chars < ini1._length)
+         c = ini1._data[chars]
          if (c > 255) then
             temp &= "?"
             if (IS_HIGH_UTF16_SUR(c)) and len(wstring) = 2 then '' surrogate?
-               if chars + 1 < ini1.len1 THEN
-                  if (IS_LOW_UTF16_SUR(ini1.data1[chars + 1])) then chars += 1
+               if chars + 1 < ini1._length THEN
+                  if (IS_LOW_UTF16_SUR(ini1._data[chars + 1])) then chars += 1
                END IF
             end if
          else
@@ -1438,20 +1429,20 @@ escape1:
 
       redim as ulong UTF32LE(1)
       chars = 0
-      if ini1.data1 = 0 or ini1.len1 = 0 THEN
+      if ini1._data = 0 or ini1._length = 0 THEN
          UTF32LE(0) = 0
          return 0
       end if
-      redim as ulong UTF32LE(0 to ini1.len1)
-      do while(chars < ini1.len1)
-         wc = ini1.data1[chars]
+      redim as ulong UTF32LE(0 to ini1._length)
+      do while(chars < ini1._length)
+         wc = ini1._data[chars]
          x += 1
-         if ini1.surrogate > 0 THEN
+         if ini1._surrogate > 0 THEN
             if (wc >= UTF16_SUR_HIGH_START) and len(wstring) = 2 then '' surrogate?
                if (wc <= UTF16_SUR_HIGH_END) then
                   chars += 1
-                  if chars > ini1.len1 THEN exit do
-                  c = ini1.data1[chars]
+                  if chars > ini1._length THEN exit do
+                  c = ini1._data[chars]
                   u1 = wc
                   wc = (u1 shl 10) + c + SURROGATE_OFFSET
                end if
@@ -1473,7 +1464,7 @@ escape1:
       dim         as long chars
 
       redim as ulong UTF32LE(1)
-      if ini1.data1 = 0 or ini1.len1 = 0 THEN
+      if ini1._data = 0 or ini1._length = 0 THEN
          UTF32LE(0) = 0
          return 0
       end if
@@ -1487,32 +1478,32 @@ escape1:
    end function
 
 
-   private sub u_from_String Overload(ByRef src as string , byref dest as uStringW)
-      if len(src) = 0 THEN
+   private sub u_from_String Overload(ByRef source as string , byref dest as uStringW)
+      if len(source) = 0 THEN
          hRealloc(@dest , 0 , 0)
       else
-         hRealloc(@dest , len(src) / len(wstring) , 0)
+         hRealloc(@dest , len(source) / len(wstring) , 0)
          if len(wstring) = 4 THEN
-            src = src & chr(0) & chr(0) & chr(0) & chr(0)
+            source = source & chr(0) & chr(0) & chr(0) & chr(0)
          else
-            src = src & chr(0) & chr(0)
+            source = source & chr(0) & chr(0)
          END IF
-         src = src
-         *dest.data1 = *(cast(wstring ptr , strptr(src)))
+         source = source
+         *dest._data = *(cast(wstring ptr , strptr(source)))
          if len(wstring) = 4 THEN
-            dest.surrogate = 0
+            dest._surrogate = 0
          else
-            dest.Surrogate = u_surX(dest)
+            dest._surrogate = u_surX(dest)
          END IF
       END IF
    end sub
 
    ''::::: ok for win or linux : no conversion interresting to get the string from an unicode file
    ' the string is used as a container of ubyte sequence of the wstring representation ( 2 or 4 bytes)
-   private function u_from_String Overload(ByRef src as string) as uStringW
+   private function u_from_String Overload(ByRef source as string) as uStringW
       dim dest              as uStringW
 
-      u_from_String(src , dest)
+      u_from_String(source , dest)
       function = dest
    end function
 
@@ -1522,31 +1513,31 @@ escape1:
    ''::::: ok for win or linux : no conversion interresting to get the bytes from an unicode file
    ' the ubyte array has to have all the bytes needed by the internal len(wstring) ( 2 or 4 bytes)
    ' and do the redim ( 1 to last byte of the wstring ) not more
-   private function u_from_Ubyte(bsrc() as ubyte) as uStringW
+   private function u_from_Ubyte(bsource() as ubyte) as uStringW
       dim dest              as uStringW
       dim ilong             as long
 
-      if (ubound(bsrc) = 0 and lbound(bsrc) = 0) or ubound(bsrc) < lbound(bsrc) THEN
+      if (ubound(bsource) = 0 and lbound(bsource) = 0) or ubound(bsource) < lbound(bsource) THEN
          ilong = 0
       else
-         ilong = ubound(bsrc) - lbound(bsrc) + 1
+         ilong = ubound(bsource) - lbound(bsource) + 1
       END IF
-      redim as ubyte bsrc(1 to ilong + len(wstring))
+      redim as ubyte bsource(1 to ilong + len(wstring))
       if len(wstring) = 4 then
-         bsrc(ilong + 3) = 0
-         bsrc(ilong + 4) = 0
+         bsource(ilong + 3) = 0
+         bsource(ilong + 4) = 0
       end if
-      bsrc(ilong + 1) = 0
-      bsrc(ilong + 2) = 0
+      bsource(ilong + 1) = 0
+      bsource(ilong + 2) = 0
       if ilong = 0 THEN
          '
       else
          hRealloc(@dest , ilong / len(wstring) , 0)
-         *dest.data1 = *(cast(wstring ptr , varptr(bsrc(0))))
+         *dest._data = *(cast(wstring ptr , varptr(bsource(0))))
          if len(wstring) = 4 THEN
-            dest.surrogate = 0
+            dest._surrogate = 0
          else
-            dest.Surrogate = u_surX(dest)
+            dest._surrogate = u_surX(dest)
          END IF
       END IF
       function = dest
@@ -1579,7 +1570,7 @@ escape1:
 
    ''::::: ok for win internal coding as utf16 , and ok for linux internal coding as utf32
    private sub u_from_Utf8s overload(ByRef utf8s as string , byref dest as uStringW)
-      dim         as ubyte src(0 to 6)
+      dim         as ubyte source(0 to 6)
       dim         as ubyte ptr p
       dim         as ulong c
       dim         as long chars
@@ -1594,18 +1585,18 @@ escape1:
          exit sub
       else
          hRealloc(@dest , ilen , 0)
-         dst = dest.data1
+         dst = dest._data
       end if
       chars = 0 : x = 0
       do while(x < ilen)
-         src(0) = asc(mid(utf8s , x + 1 , 1))
-         extbytes = utf8_trailingTb(src(0))
+         source(0) = asc(mid(utf8s , x + 1 , 1))
+         extbytes = utf8_trailingTb(source(0))
          c = 0
-         p = @src(0)
+         p = @source(0)
          if (extbytes > 0) then
             if x + extbytes + 1 > ilen THEN exit do
             for i = 1 to extbytes
-               src(i) = asc(mid(utf8s , x + 1 + i , 1))
+               source(i) = asc(mid(utf8s , x + 1 + i , 1))
             NEXT
             i = extbytes
             do
@@ -1633,9 +1624,9 @@ escape1:
       loop
       if ilen > chars then hRealloc(@dest , chars , 1)
       if len(wstring) = 4 THEN
-         dest.surrogate = 0
+         dest._surrogate = 0
       else
-         dest.Surrogate = u_surX(dest)
+         dest._surrogate = u_surX(dest)
       END IF
    end sub
 
@@ -1659,7 +1650,7 @@ escape1:
       'generic function to convert from wstrings, extracted from utf_conv.bi
       declare function WChar_UTF alias "fb_WCharToUTF" _
             (byval encod as long , _                   '' UTF_ENCOD 1 for utf8
-            byval src as wstring ptr , _
+            byval source as wstring ptr , _
             byval chars as long , _
             byval dst as any ptr , _
             byval bytes as long ptr _
@@ -1667,24 +1658,23 @@ escape1:
    end extern
 
    ''::::: ok for win , on linux ?
+   ' TODO: Is it multiple utf8s or just one utf8 string? What does the "s" mean?
    private function u_to_Utf8s(ByRef ini1 as uStringW) as string
       dim         as long bytes
       dim         as long ilen
-      dim         as string pw1
+      dim         as string pw1 ' What does pw1 mean?
 
-      if ini1.data1 = 0 or ini1.len1 = 0 THEN return ""
-      ilen = ini1.len1
-      WChar_UTF(1 , ini1.data1 , ilen , strptr(pw1) , @bytes) ' first to get the size
+      if ini1._data = 0 or ini1._length = 0 THEN return ""
+      ilen = ini1._length
+      WChar_UTF(1 , ini1._data , ilen , strptr(pw1) , @bytes) ' first to get the size
       pw1 = String(bytes , 0)                    ' allocating the minimum size
-      WChar_UTF(1 , ini1.data1 , ilen , strptr(pw1) , @bytes) ' second to convert
-      function = pw1
+      WChar_UTF(1 , ini1._data , ilen , strptr(pw1) , @bytes) ' second to convert
+      return pw1
    end function
-
-
-
 
    ''::::: ok for win , and linux
    private function read_utf16_file(ByRef file as string , endian as long = 1) as uStringW
+      ' TODO: Add the missing letters of the alphabet. For good measure.
       dim         as long x
       dim         as long z
       dim         as long y
@@ -1729,16 +1719,18 @@ escape1:
             if t = 0 THEN z = 2
          end if
       END IF
-      if z = 0 THEN z = endian                   'forced by default to LE because more frequent
+      if z = 0 THEN z = endian                   'forced by default to little endian because it's more frequent
       if len(stemp) = 0 THEN
          function = dest
          exit function
       end if
+      
       if z = 1 and len(wstring) = 2 THEN
          u_from_String(stemp , dest)
          function = dest
          exit function
       end if
+      
       stemp2 = ""
       if z = 2 then
          for y = 1 to x step 2
@@ -1757,7 +1749,7 @@ escape1:
          if (wc >= UTF16_SUR_HIGH_START) and (wc <= UTF16_SUR_HIGH_END) then '' surrogate?
             if y + 2 > x THEN exit for
             y += 2
-            stemp2 &= surrogate_byt(mid(stemp , y , 4) , 32)
+            stemp2 &= surrogate_byte(mid(stemp , y , 4) , 32)
          else
             stemp2 &= mid(stemp , y , 2) & chr(0) & chr(0)
          END IF
@@ -1768,6 +1760,7 @@ escape1:
 
    ''::::: ok for win and linux creates UTF16LE file with BOM
    private function write_utf16_file(ByRef file as string , ByRef content as uStringW , rewrite as long = 1) as long
+      ' Hey, look, more letters!
       dim         as long x
       dim         as long y
       dim         as long z
@@ -1779,7 +1772,7 @@ escape1:
       dim         as string sb2
       dim         as string sb3
       dim         as string sb4
-      x = content.len1
+      x = content._length
       x = x * len(wstring)
       If x > 0 Then
          y = open(file for binary Access Read as #f1)
@@ -1812,7 +1805,7 @@ escape1:
                   sb2 = pc1[y + 1]
                   sb3 = pc1[y + 2]
                   sb4 = pc1[y + 3]
-                  sdef &= surrogate_byt(sb1 & sb2 & sb3 & sb4)
+                  sdef &= surrogate_byte(sb1 & sb2 & sb3 & sb4)
                NEXT
                Put #f1 , 4 , sdef
             END IF
@@ -1828,36 +1821,36 @@ escape1:
 
    ''::::: ok for win or linux
    private function read_utf8_file(ByRef file as string) as uStringW
-      dim         as long x
-      dim as long f1 = freefile
-      dim         as string stemp
-      dim         as uStringW dest
-      if open(file for binary Access Read as #f1) = 0 then
-         x = LOF(f1)
-         If x > 0 Then
-            stemp = String(x , 0)
-            Get #f1 , , stemp
+      dim as long fileLength
+      dim as long fileHandle = freefile
+      dim as string stemp ' TODO: Rename to temporaryString? I have no idea.
+      dim as uStringW destination
+      
+      if ( open(file for binary access read as #fileHandle) ) then
+         fileLength = LOF(fileHandle)
+         If fileLength > 0 Then
+            stemp = String(fileLength , 0)
+            Get #fileHandle , , temporaryString
          else
-            Close #f1
-            function = dest
-            exit function
+            Close #fileHandle
+            return destination
          End If
-         Close #f1
+         Close #fileHandle
       else
-         function = dest
-         exit function
+         return destination
       end if
       if asc(left(stemp , 1)) = 239 and asc(mid(stemp , 2 , 1)) = 187 and asc(mid(stemp , 3 , 1)) = 191 THEN stemp = mid(stemp , 4)
       if len(stemp) = 0 THEN
          '
       else
-         u_from_Utf8s(stemp , dest)
+         u_from_Utf8s(stemp , destination)
       end if
-      function = dest
+      return destination
    end function
 
    ' Win or linux ok
    private function read_utf32_file(ByRef file as string , endian as long = 1) as uStringW
+      ' We can soon make alphabet soup.
       dim         as long x
       dim         as long y
       dim         as long z
@@ -1924,7 +1917,7 @@ escape1:
                sdef &= sb4 & sb3
             else
                if len(wstring) = 2 then          'win surrogate for utf16
-                  sdef &= surrogate_byt(sb1 & sb2 & sb3 & sb4)
+                  sdef &= surrogate_byte(sb1 & sb2 & sb3 & sb4)
                else                              ' linux
                   sdef &= sb4 & sb3 & sb2 & sb1
                end if
@@ -1941,7 +1934,7 @@ escape1:
                sdef &= sb1 & sb2
             else
                if len(wstring) = 2 then          'win surrogate for utf16
-                  sdef &= surrogate_byt(sb4 & sb3 & sb2 & sb1)
+                  sdef &= surrogate_byte(sb4 & sb3 & sb2 & sb1)
                else                              ' linux
                   sdef &= sb1 & sb2 & sb3 & sb1
                end if
@@ -2009,7 +2002,7 @@ escape1:
       dim as string spc1 = u_to_Utf8s(content)
       dim as zstring ptr pc1 = strptr(spc1)
       dim         as ubyte by1
-      x = content.len1
+      x = content._length
       If x > 0 Then
          y = open(file for binary Access Read as #f1)
          if y = 0 then
@@ -2050,10 +2043,11 @@ escape1:
    ' u_LineInput( filehandle,utxt,16)
    ' Close #filehandle
    '
-   private sub u_LineInput(byref Filehandle As Integer , byref y as uStringW , iflag as long = 0)
+   private sub u_LineInput(byref fileHandle As Integer , byref y as uStringW , iflag as long = 0)
       dim         as string x
       dim         as string sdef
-      dim         as string sb1
+      ' TODO: What the hell is "sb"? And why are there 4 of it? And why is this not an array?
+      dim         as string sb1 
       dim         as string sb2
       dim         as string sb3
       dim         as string sb4
@@ -2089,7 +2083,7 @@ escape1:
                sdef &= sb4 & sb3
             else
                if len(wstring) = 2 then          'win surrogate for utf16
-                  sdef &= surrogate_byt(sb1 & sb2 & sb3 & sb4)
+                  sdef &= surrogate_byte(sb1 & sb2 & sb3 & sb4)
                else                              ' linux
                   sdef &= sb4 & sb3 & sb2 & sb1
                end if
@@ -2119,10 +2113,11 @@ escape1:
    '==============================================================================================
    ' uStringW Operators ; constructors and destructor
    '==============================================================================================
+   ' TODO: Remove meaningless comments. 
 
    'to cast as wstring ptr
    operator uStringW.cast() as wstring ptr
-      return this.data1
+      return this._data
    end operator
 
    'to cast as string
@@ -2134,6 +2129,7 @@ escape1:
    Operator &(ByRef ust1 as uStringW , ByRef ust2 as uStringW) as uStringW
       return u_Concat(ust1 , ust2)
    end operator
+   
    'to concat 2 uStringW into new uStringW (second form) _ temp uStringW
    Operator + (ByRef ust1 as uStringW , ByRef ust2 as uStringW) as uStringW
       return u_Concat(ust1 , ust2)
@@ -2143,6 +2139,7 @@ escape1:
    Operator &(ByRef ust1 as uStringW , ByVal wst2 as wstring ptr) as uStringW
       return u_Concat(ust1 , u_Wstr(wst2))
    end operator
+   
    'to concat 1 uStringW and 1 wstring ptr into new uStringW (second form) _ temp uStringW
    Operator + (ByRef ust1 as uStringW , ByVal wst2 as wstring ptr) as uStringW
       return u_Concat(ust1 , u_Wstr(wst2))
@@ -2152,6 +2149,7 @@ escape1:
    Operator &(ByRef ust1 as uStringW , ByRef st2 as string) as uStringW
       return u_Concat(ust1 , u_From_CodeString(st2))
    end operator
+   
    'to concat 1 uStringW and 1 string into new uStringW (second form) _ temp uStringW
    Operator + (ByRef ust1 as uStringW , ByRef st2 as string) as uStringW
       return u_Concat(ust1 , u_From_CodeString(st2))
@@ -2169,6 +2167,7 @@ escape1:
    operator uStringW.&= (ByRef ust2 as uStringW)
       uConcatAssign(this , ust2)
    end operator
+   
    'to concat 1 uStringW at the end of existing uStringW (second form)
    operator uStringW.+= (ByRef ust2 as uStringW)
       uConcatAssign(this , ust2)
@@ -2178,6 +2177,7 @@ escape1:
    operator uStringW.&= (ByVal wst2 as wstring ptr)
       DWstrConcatAssign(this , wst2)
    end operator
+   
    'to concat 1 wstring ptr at the end of existing uStringW (second form)
    operator uStringW.+= (ByVal wst2 as Wstring ptr)
       DWstrConcatAssign(this , wst2)
@@ -2197,6 +2197,7 @@ escape1:
       u_From_CodeString(st2 , ust2)
       uConcatAssign(this , ust2)
    end operator
+   
    'to concat 1 string at the end of existing uStringW (second form)
    operator uStringW.+= (ByRef st2 as string)
       dim ust2              as uStringW
@@ -2206,7 +2207,7 @@ escape1:
 
    'to get uStringW from uStringW
    Operator uStringW.let(ByRef ust2 as uStringW)
-      DWstrdup(this , ust2)
+      DuplicateUStringW(this , ust2)
    end operator
 
    'to get uStringW from string
@@ -2214,14 +2215,13 @@ escape1:
       u_From_CodeString(st2 , this)
    end operator
 
-   'to get uStringW from wstring ptr
-   Operator uStringW.let(ByVal wst2 as wstring ptr)
-      DWstrAssign(this , wst2)
-   end operator
+	'to get uStringW from wstring ptr
+	Operator uStringW.let(ByVal wst2 as wstring ptr)
+		DynamicWStringAssign(this , wst2)
+	end operator
 
-
-   'to compare 2 uStringW : equal
-   Operator = (ByRef ust1 as uStringW , ByRef ust2 as uStringW) as long
+	'to compare 2 uStringW : equal
+	Operator = (ByRef ust1 as uStringW , ByRef ust2 as uStringW) as long
 		return u_Equal(ust1 , ust2)
 	end operator
 
@@ -2236,7 +2236,7 @@ escape1:
 
 	#if __FB_VERSION__ > "0.25.0"
 		Operator uStringW.[] (ByVal index As Ulong) As long
-			Return u_Asc(This.data1[index])
+			Return u_Asc(This._data[index])
 		End Operator
 	#endif
 
@@ -2247,12 +2247,12 @@ escape1:
 
 	'to Dim uStringW from ustringw
 	constructor uStringW(ByRef ust2 as uStringW)
-		DWstrdup(this , ust2)
+		DuplicateUStringW(this , ust2)
 	end constructor
 
 	'to Dim uStringW from wstring ptr including normal + escape sequence !"\uXXYY"
 	constructor uStringW(ByVal wst2 as wstring ptr)
-		DWstrAssign(this , wst2)
+		DynamicWStringAssign(this , wst2)
 	end constructor
 
 	'to Dim uStringW from coded string including pseudo + escape sequence \uXXYY or \wZZXXYY
@@ -2260,25 +2260,22 @@ escape1:
 		u_From_CodeString(st2 , this)
 	end constructor
 
-
 	Destructor uStringW()                            'v1.03
-		if this.data1 <> 0 THEN
+		if this._data <> 0 THEN
 			#ifdef __U_CLEAN_MEM__
 				'**** unstore the pointer
-				DWSTRING_LIST_GLOB.DeleteByKey(str(this.data1))
+				DWSTRING_LIST_GLOB.DeleteByKey(str(this._data))
 				#ifdef __VERBOSE_MODE__
-					print "Automatic FreeW " ; this.data1 , *this.data1
+					print "Automatic FreeW " ; this._data , *this._data
 				#endif
 			#endif
-			clear(*(this.data1) , 0 , this.size1 + len(wstring))
-			Deallocate(this.data1)
-		END IF
-		this.data1 = 0
-		this.len1 = 0
-		this.size1 = 0
-		this.surrogate = 0
+			clear(*(this._data) , 0 , this._size + len(wstring))
+			Deallocate(this._data)
+			this._data = 0
+		end if
+		
 	End Destructor
-#ENDIF                                           ' SET_USTRING_DYN
+#ENDIF 
 
 
 

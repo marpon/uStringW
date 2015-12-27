@@ -1,0 +1,17 @@
+1.01:
+* added constructors to have corrected direct assignment and with implicit converted string , wstring ptr
+* corrected bug in u_Instr function to work on reverse ustring order with negative start
+
+1.02:
+* some cosmetic cleaning : ustringw functions : use now 'function = xx' , not 'return xx'
+* modified parameter order in u_string(count , code), added more functions : case & Trim collection
+
+1.03:
+* use as much as possible subs to not create frequent memory :alloc/assign/free
+* new constructors ; operators and destructor for automatic deallocate
+
+1.04:
+minor bugs corrected, on surrogate management
+
+1.05:
+added new operator [] taking care also of surrogates
